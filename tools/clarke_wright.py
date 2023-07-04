@@ -14,7 +14,6 @@ def create_route(data, manager, routing, solution, vehicle_id):
     route.append(manager.IndexToNode(index))
     return route
 
-
 def get_solution(data, manager, routing, solution):
     """Returns the solution as an array of arrays."""
     routes = []
@@ -22,7 +21,6 @@ def get_solution(data, manager, routing, solution):
         route = create_route(data, manager, routing, solution, vehicle_id)
         routes.append(route)
     return routes
-
 
 def cw_algorithm(distance_matrix, demands, vehicle_capacities, max_distance, num_vehicles, depot):
     """Solve the CVRP problem."""
@@ -32,8 +30,9 @@ def cw_algorithm(distance_matrix, demands, vehicle_capacities, max_distance, num
     data['demands'] = demands
     data['vehicle_capacities'] = [vehicle_capacities for _ in range(0, num_vehicles)]
     data['num_vehicles'] = num_vehicles
+    data['vehicle_max_distance'] = max_distance
     data['depot'] = depot
-        
+
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
                                            data['num_vehicles'], data['depot'])
@@ -54,21 +53,29 @@ def cw_algorithm(distance_matrix, demands, vehicle_capacities, max_distance, num
     # Define cost of each arc.
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-    # Add Capacity constraint.
+    # Add capacity constraint.
     def demand_callback(from_index):
         """Returns the demand of the node."""
         # Convert from routing variable Index to demands NodeIndex.
         from_node = manager.IndexToNode(from_index)
         return data['demands'][from_node]
 
-    demand_callback_index = routing.RegisterUnaryTransitCallback(
-        demand_callback)
+    demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
     routing.AddDimensionWithVehicleCapacity(
         demand_callback_index,
         0,  # null capacity slack
         data['vehicle_capacities'],  # vehicle maximum capacities
         True,  # start cumul to zero
         'Capacity')
+
+    # Add maximum distance constraint.
+    max_distance = data['vehicle_max_distance']  # Maximum traveled distance for each vehicle
+    routing.AddDimension(
+        transit_callback_index,
+        0,  # no slack
+        max_distance,  # maximum distance
+        True,  # start cumul to zero
+        'Distance')
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()

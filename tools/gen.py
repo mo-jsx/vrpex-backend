@@ -56,7 +56,6 @@ class Truck:
 # =================================================================================================================
 
 class CommandAllocator:
-    import random
     def __init__(self, commands, truck_capacity, distance_matrix, max_distance, num_trucks):
         self.commands = random.sample(commands, len(commands))  # Mélange aléatoire de la liste des commandes
         self.truck_capacity = truck_capacity
